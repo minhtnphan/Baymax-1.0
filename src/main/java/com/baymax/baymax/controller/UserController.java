@@ -25,12 +25,6 @@ public class UserController {
         userRepository.save(user);
         return "Success";
     }
-    @PostMapping("/department")
-
-    public String saveDepartment(@RequestBody Department department) {
-        departmentRepository.save(department);
-        return "Success";
-    }
     @PostMapping("/user/login")
     public User login(@RequestBody User user) {
         User ret = new User();
@@ -41,29 +35,24 @@ public class UserController {
         }
         return ret;
     }
-    @GetMapping("/department/recommender")
-    public List<Department> findDepartments(@RequestBody Department department){
-        List<Department> recommendedDepartments = new ArrayList<Department>();
-        recommendedDepartments = departmentRepository.findBySymptomAndRanking(department.getSymptom(),
-                Long.valueOf(5));
-        return recommendedDepartments;
-    }
+
     @GetMapping("/user")
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
-    @GetMapping("/department")
-    public List<Department> getAllDepartments() {
-        return departmentRepository.findAll();
-    }
+
     @GetMapping("/user/{id}")
     public User getUser(@PathVariable(name = "id") Long userId) {
+
         return userRepository.findById(userId).get();
     }
+
     @DeleteMapping("/user/{id}")
     void deleteUser(@PathVariable long id) {
+
         userRepository.delete(userRepository.getOne(id));
     }
+
     @PutMapping("/user/{id}")
     User updateUser(@RequestBody User newUser, @PathVariable long id) {
         return userRepository.findById(id).map(user -> { // update when id found
@@ -75,5 +64,74 @@ public class UserController {
                     newUser.setId(id);
                     return userRepository.save(newUser);
                 });
+    }
+
+    @PostMapping("/department")
+    public String saveDepartment(@RequestBody Department department) {
+        departmentRepository.save(department);
+        return "Success";
+    }
+
+    @GetMapping("/department")
+    public List<Department> getAllDepartments() {
+        return departmentRepository.findAll();
+    }
+
+    @PutMapping("/department/{id}")
+    Department updateDepartment(@RequestBody Department newDepartment, @PathVariable long id) {
+        return departmentRepository.findById(id).map(department -> { // update when id found
+            department.setDepartment(newDepartment.getDepartment());
+            department.setHospital(newDepartment.getHospital());
+            department.setSymptom(newDepartment.getSymptom());
+            department.setRanking(newDepartment.getRanking());
+            department.setInsuranceStatus(newDepartment.getInsuranceStatus());
+            department.setPrice(newDepartment.getPrice());
+            department.setLocation(newDepartment.getLocation());
+
+            return departmentRepository.save(department);
+        }) // store new record
+                .orElseGet(()-> {
+                    newDepartment.setId(id);
+                    return departmentRepository.save(newDepartment);
+                });
+    }
+
+    @GetMapping("/department/recommender") // recommends the highest-ranking departments
+    public List<Department> findDepartmentsBySymptoms(@RequestBody Department department){
+        List<Department> recommendedDepartments = new ArrayList<Department>();
+        recommendedDepartments = departmentRepository.findBySymptomAndRanking(department.getSymptom(),
+                Long.valueOf(5));
+        return recommendedDepartments;
+    }
+
+    @GetMapping("/department/recommender/insurance") // recommend hospitals filtering by Bao Minh Insurance
+    public List<Department> findDepartmentsByInsurance(@RequestBody Department department){
+        List<Department> recommendedDepartmentsBySymptoms = findDepartmentsBySymptoms(department);
+        List<Department> recommendedDepartmentsByInsurance = new ArrayList<Department>();
+        for (int i = 0; i < recommendedDepartmentsBySymptoms.size(); i++){
+            if (recommendedDepartmentsBySymptoms.get(i).getInsuranceStatus() == 1){
+                recommendedDepartmentsByInsurance.add(recommendedDepartmentsBySymptoms.get(i));
+            }
+        }
+        return recommendedDepartmentsByInsurance;
+    }
+
+    @GetMapping("/department/recommender/price/{price}") // recommend hospitals filtering by price
+    public List<Department> findDepartmentsByPrice(@RequestBody Department department, @PathVariable long price) {
+        List<Department> recommendedDepartmentsBySymptoms = findDepartmentsBySymptoms(department);
+        List<Department> recommendedDepartmentsByPrice = new ArrayList<Department>();
+        for (int i = 0; i < recommendedDepartmentsBySymptoms.size(); i++) {
+            if (recommendedDepartmentsBySymptoms.get(i).getPrice() <= price) {
+                recommendedDepartmentsByPrice.add(recommendedDepartmentsBySymptoms.get(i));
+            }
+        }
+        return recommendedDepartmentsByPrice;
+    }
+
+    @GetMapping("/department/recommender/location/{location}") // recommend hospitals filtering by location
+    public List<Department> findDepartmentsByLocation(@RequestBody Department department, @PathVariable String location) {
+        List<Department> recommendedDepartments = new ArrayList<Department>();
+        recommendedDepartments = departmentRepository.findBySymptomAndLocation(department.getSymptom(), location);
+        return recommendedDepartments;
     }
 }
