@@ -3,7 +3,9 @@ package com.baymax.baymax.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -19,10 +21,9 @@ public class User {
     @ManyToMany(cascade = CascadeType.ALL)
     @JoinTable(name = "permission",
             joinColumns = { @JoinColumn(name = "user_id") },
-            inverseJoinColumns = { @JoinColumn(name = "accessMethod_id") })
+            inverseJoinColumns = { @JoinColumn(name = "access_id") })
     @JsonIgnoreProperties("users")
-    private Set<AccessMethod> accessMethods;
-
+    private Set<Access> access;
     public User() {}
 
 
@@ -57,25 +58,34 @@ public class User {
         this.symptom = symptom;
     }
 
-    public Set<AccessMethod> getAccessMethods() {
-        return accessMethods;
+    public Set<Access> getAccess() {
+        return access;
     }
 
-    public void setAccessMethods(Set<AccessMethod> accessMethods) {
-        this.accessMethods = accessMethods;
+    public void setAccess(Set<Access> access) {
+        this.access = access;
     }
 
-    public void addAccessMethod(AccessMethod method) {
-        if (accessMethods == null) {
-            accessMethods = new HashSet<>();
+    public void addAccess(Access addAccess) {
+        if (access == null) {
+            access = new HashSet<>();
         }
-        this.getAccessMethods().add(method);
+        this.getAccess().add(addAccess);
     }
 
-    public void removeAccessMethod(AccessMethod method) {
-        if (accessMethods == null) {
-            accessMethods = new HashSet<>();
+    public void removeAccess(Access reAccess) {
+        if (access == null) {
+            access = new HashSet<>();
         }
-        this.getAccessMethods().remove(method);
+        this.getAccess().remove(reAccess);
     }
+    public List<User> getFromAccess(List<Access> access) {
+        List<User> users = new ArrayList<>();
+        for (Access per: access) {
+            Set<User> user = per.getUsers();
+            users.add(user.iterator().next());
+        }
+        return users;
+    }
+
 }

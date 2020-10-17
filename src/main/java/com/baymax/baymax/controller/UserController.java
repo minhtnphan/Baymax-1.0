@@ -1,21 +1,22 @@
+/**
+ * Controller for users of Baymax1.0
+ * @Author: Huyen Nguyen
+ * @Author: Minh Phan
+ */
 package com.baymax.baymax.controller;
 
-import com.baymax.baymax.entity.AccessMethod;
-import com.baymax.baymax.entity.Department;
+import com.baymax.baymax.entity.Access;
 import com.baymax.baymax.entity.User;
-import com.baymax.baymax.repository.AccessMethodRepository;
+import com.baymax.baymax.repository.AccessRepository;
 import com.baymax.baymax.repository.DepartmentRepository;
 import com.baymax.baymax.repository.UserRepository;
-import com.baymax.baymax.utils.RoleUtils;
 import com.baymax.baymax.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
-import static com.baymax.baymax.utils.checkPermission.checkPermission;
 
 @RestController
 public class UserController {
@@ -24,119 +25,145 @@ public class UserController {
     @Autowired
     private DepartmentRepository departmentRepository;
     @Autowired
-    private AccessMethodRepository accessMethodRepository;
+    private AccessRepository accessRepository;
 
-
+    /**
+     * Register new user
+     * @param user user's information
+     * @return String denoting if the user has successfully registered their accounts
+     */
     @PostMapping("/user")
     public String registerUser(@RequestBody User user) {
-        if (user.getRole() == null || user.getPassword() == null) {
+        if (user.getRole() == null
+                || user.getPassword() == null
+                ||user.getUsername() == null) {
             return "Missing information";
         }
         if (userRepository.findByUsername(user.getUsername()).size() > 0) {
             return "User already exist";
         }
-        List<String> permission = new ArrayList<>();
         if (user.getRole().equals("admin")) {
-            permission = RoleUtils.ADMIN_PERMISSIONS;
-            for (String per : permission) {
-                long id = accessMethodRepository.findByMethod(per).get(0).getId();
-                    user.addAccessMethod(accessMethodRepository.getOne(id));
-                }
-            }
+            Access adminAccess = new Access(user.getRole());
+            user.addAccess(adminAccess);
+        }
         if (user.getRole().equals("user")) {
-            permission = RoleUtils.USER_PERMISSIONS;
-            for (String per : permission) {
-                long id = accessMethodRepository.findByMethod(per).get(0).getId();
-                user.addAccessMethod(accessMethodRepository.getOne(id));
-            }
+            Access userAccess = new Access(user.getRole());
+            user.addAccess(userAccess);
         }
         else if (user.getRole() == null) {
             return "No role declared";
         }
-            String hashedPass = SecurityUtils.hashPassword(user.getPassword());
-            user.setPassword(hashedPass);
-            userRepository.save(user);
-            return "Success";
-    }
-
-    @PostMapping("{username}/department")
-    public String saveDepartment(@RequestBody Department department,
-                                 @PathVariable(name = "username") String username) {
-        boolean validate = checkPermission(username, "save",
-                            userRepository, accessMethodRepository);
-        if (validate == Boolean.FALSE) {
-            return "failed";
-        }
-        departmentRepository.save(department);
+        String hashedPass = SecurityUtils.hashPassword(user.getPassword());
+        user.setPassword(hashedPass);
+        userRepository.save(user);
         return "Success";
     }
+
+    /**
+     * Log in to the application
+     * @param user user's information
+     * @return user's information if successfully logged in
+     */
     @PostMapping("/user/login")
     public User login(@RequestBody User user) {
+        if (user.getUsername() == null || user.getPassword() == null) {
+            return new User();
+        }
         User ret = new User();
         if (user.getUsername() != null && user.getPassword() != null) {
             final String hashed = SecurityUtils.hashPassword(user.getPassword());
             final List<User> users = userRepository.
-                                    findByUsernameAndPassword(user.getUsername(), hashed);
+                    findByUsernameAndPassword(user.getUsername(), hashed);
             if (users.size() >0) ret = users.get(0);
         }
         return ret;
     }
-    @GetMapping("/department/recommender")
-    public List<Department> findDepartments(@RequestBody Department department){
-        List<Department> recommendedDepartments = new ArrayList<Department>();
-        recommendedDepartments = departmentRepository.
-                                findBySymptomAndRanking(department.getSymptom(),
-                Long.valueOf(5));
-        return recommendedDepartments;
-    }
+
+    /**
+     * For admins to get all users' information from database
+     * @param username to check if the user has permission to view all information
+     * @return list of registered users in the application
+     */
     @GetMapping("/{username}/user")
-    public List<User> getAllUsers(@PathVariable String username) {
-        boolean validate = checkPermission(username, "getUser",
-                            userRepository, accessMethodRepository);
-        if (validate == Boolean.FALSE) {
+    public List<User> getAllUsers(@PathVariable(name = "username") String username) {
+        Access access = accessRepository.findByUsers(userRepository.findByUsername(username).get(0)).get(0);
+        if (access.getUser.equals("no")) {
             return new ArrayList<>();
+
         }
         return userRepository.findAll();
     }
-    @GetMapping("/department")
-    public List<Department> getAllDepartments() {
-        return departmentRepository.findAll();
-    }
+
+    /**
+     * Get a user's information
+     * @param userId id to find the needed user
+     * @param username to check if this person has permission to get a user's information
+     * @return the information of the needed user
+     */
     @GetMapping("/{username}/{userId}")
     public User getUser(@PathVariable(name = "userId") Long userId,
                         @PathVariable(name = "username") String username) {
-        if (checkPermission(username, "getUser",
-                userRepository, accessMethodRepository)
-                == Boolean.FALSE) {
-            return new User();
-        }
-        if (userRepository.findById(userId).isEmpty()) {
+        Access access = accessRepository.findByUsers(userRepository.findByUsername(username).get(0)).get(0);
+        if (access.getUser.equals("no")) {
             return new User();
         }
         return userRepository.findById(userId).get();
     }
-    @DeleteMapping("/{username}/user/{id}")
+
+    /**
+     * Delete a user from repository
+     * @param id the id of the user that will be deleted
+     * @param username to check if this person has permission to delete user
+     */
+    @DeleteMapping("/{username}/{id}")
     void deleteUser(@PathVariable(name = "id") long id,
                     @PathVariable(name = "username") String username) {
-        if (checkPermission(username, "deleteUser",
-                userRepository, accessMethodRepository) == Boolean.FALSE) {
-            System.out.println("No permission to delete user");
+        Access access = accessRepository.
+                findByUsers(userRepository.findByUsername(username).get(0)).get(0);
+        if (access.getUser.equals("no")) {
             return;
         }
         userRepository.delete(userRepository.getOne(id));
     }
-    @PutMapping("/{username}/user/{id}")
+
+    /**
+     * Update a users' information
+     * @param newUser the updated information of the user
+     * @param id the id of the user whose information will be updated
+     * @param username to check if this person has permission to update user's information
+     * @return the new upated information of the user
+     */
+    @PutMapping("/{username}/{id}")
     User updateUser(@RequestBody User newUser, @PathVariable(name = "id") long id,
                     @PathVariable(name = "username") String username) {
-        if (checkPermission(username, "update",
-                userRepository, accessMethodRepository) == Boolean.FALSE) {
-            System.out.println("No permission to delete user");
+        Access access = accessRepository.
+                findByUsers(userRepository.findByUsername(username).get(0)).get(0);
+        if (access.getUpdate().equals("no")) {
             return new User();
+        }
+        User terUser = userRepository.findById(id).get();
+        Access newAc = terUser.getAccess().iterator().next();
+        if (newUser.getRole().equals("admin")) {
+            newAc.setRole("admin");
+            newAc.setGetUser("yes");
+            newAc.setUpdate("yes");
+            newAc.setDelete("yes");
+            newAc.setSave("yes");
+        }
+        else if (newUser.getRole().equals("user")) {
+            newAc.setRole("user");
+            newAc.setGetUser("no");
+            newAc.setUpdate("no");
+            newAc.setDelete("no");
+            newAc.setSave("no");
         }
         return userRepository.findById(id).map(user -> {
             user.setUsername(newUser.getUsername());
             user.setSymptom(newUser.getSymptom());
             user.setPassword(newUser.getPassword());
+            user.setRole(newUser.getRole());
+            user.setAccess(user.getAccess());
+
             return userRepository.save(user);
         })
                 .orElseGet(()-> {
@@ -144,6 +171,7 @@ public class UserController {
                     return userRepository.save(newUser);
                 });
     }
+
 
 
 }
