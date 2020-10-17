@@ -8,5 +8,4 @@ import java.util.List;
 public interface DepartmentRepository extends JpaRepository<Department, Long> {
     List<Department> findBySymptomAndRanking(String symptom, Long ranking);
     List<Department> findBySymptomAndLocation(String symptom, String location);
-    List<Department> findByInsuranceStatus(Integer insuranceStatus);
 }

@@ -1,5 +1,5 @@
 /**
- * Controller for users of Baymax1.0
+ * Controller for users of Baymax 1.0
  * @Author: Huyen Nguyen
  * @Author: Minh Phan
  */
@@ -35,7 +35,7 @@ public class UserController {
     @PostMapping("/user")
     public String registerUser(@RequestBody User user) {
         if (user.getRole() == null
-                || user.getPassword() == null
+                ||user.getPassword() == null
                 ||user.getUsername() == null) {
             return "Missing information";
         }
@@ -50,9 +50,6 @@ public class UserController {
             Access userAccess = new Access(user.getRole());
             user.addAccess(userAccess);
         }
-        else if (user.getRole() == null) {
-            return "No role declared";
-        }
         String hashedPass = SecurityUtils.hashPassword(user.getPassword());
         user.setPassword(hashedPass);
         userRepository.save(user);
@@ -65,18 +62,18 @@ public class UserController {
      * @return user's information if successfully logged in
      */
     @PostMapping("/user/login")
-    public User login(@RequestBody User user) {
+    public String login(@RequestBody User user) {
         if (user.getUsername() == null || user.getPassword() == null) {
-            return new User();
+            return "Missing login information";
         }
         User ret = new User();
-        if (user.getUsername() != null && user.getPassword() != null) {
-            final String hashed = SecurityUtils.hashPassword(user.getPassword());
-            final List<User> users = userRepository.
-                    findByUsernameAndPassword(user.getUsername(), hashed);
-            if (users.size() >0) ret = users.get(0);
+        final String hashed = SecurityUtils.hashPassword(user.getPassword());
+        final List<User> users = userRepository.
+                findByUsernameAndPassword(user.getUsername(), hashed);
+        if (users.size() != 1) {
+            return "Log in failed";
         }
-        return ret;
+        return "Welcome to Baymax 1.0!";
     }
 
     /**
@@ -86,7 +83,8 @@ public class UserController {
      */
     @GetMapping("/{username}/user")
     public List<User> getAllUsers(@PathVariable(name = "username") String username) {
-        Access access = accessRepository.findByUsers(userRepository.findByUsername(username).get(0)).get(0);
+        Access access = accessRepository.findByUsers(
+                userRepository.findByUsername(username).get(0)).get(0);
         if (access.getUser.equals("no")) {
             return new ArrayList<>();
 
@@ -103,7 +101,8 @@ public class UserController {
     @GetMapping("/{username}/{userId}")
     public User getUser(@PathVariable(name = "userId") Long userId,
                         @PathVariable(name = "username") String username) {
-        Access access = accessRepository.findByUsers(userRepository.findByUsername(username).get(0)).get(0);
+        Access access = accessRepository.findByUsers
+                (userRepository.findByUsername(username).get(0)).get(0);
         if (access.getUser.equals("no")) {
             return new User();
         }
@@ -131,7 +130,7 @@ public class UserController {
      * @param newUser the updated information of the user
      * @param id the id of the user whose information will be updated
      * @param username to check if this person has permission to update user's information
-     * @return the new upated information of the user
+     * @return the new updated information of the user
      */
     @PutMapping("/{username}/{id}")
     User updateUser(@RequestBody User newUser, @PathVariable(name = "id") long id,
@@ -159,7 +158,6 @@ public class UserController {
         }
         return userRepository.findById(id).map(user -> {
             user.setUsername(newUser.getUsername());
-            user.setSymptom(newUser.getSymptom());
             user.setPassword(newUser.getPassword());
             user.setRole(newUser.getRole());
             user.setAccess(user.getAccess());

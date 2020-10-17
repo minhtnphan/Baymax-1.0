@@ -40,7 +40,7 @@ public class DepartmentController {
     public String insertDepartment(@RequestBody Department department,
                                  @PathVariable(name = "username") String username) {
         if (userRepository.findByUsername(username).isEmpty()) {
-            return "User not exist";
+            return "This username is not valid";
         }
         Access access = accessRepository.findByUsers
                     (userRepository.findByUsername(username).get(0)).get(0);
@@ -64,38 +64,36 @@ public class DepartmentController {
      * @return new update Deparment
      */
     @PutMapping("/{username}/department/{id}")
-    Department updateDepartment(@RequestBody Department newDepartment,
+    String updateDepartment(@RequestBody Department newDepartment,
                                 @PathVariable(name = "id") long id,
                                 @PathVariable(name = "username") String username) {
         if (userRepository.findByUsername(username).isEmpty()) {
-            return new Department();
+            return "This username is not valid";
         }
         Access access = accessRepository.findByUsers
                 (userRepository.findByUsername(username).get(0)).get(0);
         if (access.getUpdate().equals("no")) {
-            return new Department();
+            return "You have no permission to update departments";
         }
         if (newDepartment.getDepartment() == null
             || newDepartment.getHospital() == null
             || newDepartment.getSymptom() == null
             || newDepartment.getLocation() == null) {
-            return new Department();
+            return "Missing information";
         }
-        return departmentRepository.findById(id).map(department -> {
-            department.setDepartment(newDepartment.getDepartment());
-            department.setHospital(newDepartment.getHospital());
-            department.setSymptom(newDepartment.getSymptom());
-            department.setRanking(newDepartment.getRanking());
-            department.setInsuranceStatus(newDepartment.getInsuranceStatus());
-            department.setPrice(newDepartment.getPrice());
-            department.setLocation(newDepartment.getLocation());
-
-            return departmentRepository.save(department);
-        })
-                .orElseGet(()-> {
-                    newDepartment.setId(id);
-                    return departmentRepository.save(newDepartment);
-                });
+        if (!departmentRepository.existsById(id)) {
+            newDepartment.setId(id);
+            departmentRepository.save(newDepartment);
+        }
+        Department department = departmentRepository.findById(id).get();
+        department.setDepartment(newDepartment.getDepartment());
+        department.setHospital(newDepartment.getHospital());
+        department.setSymptom(newDepartment.getSymptom());
+        department.setInsuranceStatus(newDepartment.getInsuranceStatus());
+        department.setPrice(newDepartment.getPrice());
+        department.setLocation(newDepartment.getLocation());
+        departmentRepository.save(department);
+        return "department saved";
     }
 
     /**
@@ -113,9 +111,10 @@ public class DepartmentController {
 
     /**
      * Recommend users with departments that have highest ranking to cure their input symptoms
-     * @param username
-     * @param department
-     * @return departments that have the highest ranking for curing the symptom input by users
+     * @param username the user who has registered in Baymax
+     * @param department containing information from user to receive recommendation
+     * @return departments that have the highest ranking from 1 to 5
+     * for curing the symptom input by users
      */
     @GetMapping("/{username}/department/recommender")
     public List<Department> findDepartmentsBySymptoms(@PathVariable(name = "username") String username,
@@ -139,7 +138,8 @@ public class DepartmentController {
     @GetMapping("/{username}/department/recommender/insurance") // recommend hospitals filtering by Bao Minh Insurance
     public List<Department> findDepartmentsByInsurance(@RequestBody Department department,
                                                        @PathVariable(name = "username") String username){
-        if (userRepository.findByUsername(username).isEmpty()) {
+        if (userRepository.findByUsername(username).isEmpty()
+            ||department.getSymptom().isEmpty()) {
             return new ArrayList<>();
         }
         List<Department> recommendedDepartmentsBySymptoms = findDepartmentsBySymptoms(username, department);
@@ -164,7 +164,8 @@ public class DepartmentController {
     public List<Department> findDepartmentsByPrice(@RequestBody Department department,
                                                    @PathVariable(name = "username") String username,
                                                     @PathVariable(name = "price") long price) {
-        if (userRepository.findByUsername(username).isEmpty()) {
+        if (userRepository.findByUsername(username).isEmpty()
+            || department.getSymptom().isEmpty()) {
             return new ArrayList<>();
         }
         List<Department> recommendedDepartmentsBySymptoms = findDepartmentsBySymptoms(username, department);
@@ -189,7 +190,8 @@ public class DepartmentController {
     public List<Department> findDepartmentsByLocation(@RequestBody Department department,
                                                       @PathVariable(name = "username") String username,
                                                       @PathVariable(name = "location") String location) {
-        if (userRepository.findByUsername(username).isEmpty()) {
+        if (userRepository.findByUsername(username).isEmpty()
+            ||department.getSymptom().isEmpty()) {
             return new ArrayList<>();
         }
         List<Department> recommendedDepartments = new ArrayList<Department>();

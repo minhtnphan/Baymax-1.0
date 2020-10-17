@@ -16,7 +16,6 @@ public class User {
     private String username;
     private String password;
     private String role;
-    private String symptom;
 
     @ManyToMany(cascade = CascadeType.ALL)
     @JoinTable(name = "permission",
@@ -50,12 +49,6 @@ public class User {
     }
     public void setRole(String role) {
         this.role = role;
-    }
-    public String getSymptom() {
-        return symptom;
-    }
-    public void setSymptom(String symptom) {
-        this.symptom = symptom;
     }
 
     public Set<Access> getAccess() {
