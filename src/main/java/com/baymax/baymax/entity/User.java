@@ -1,9 +1,10 @@
 package com.baymax.baymax.entity;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import javax.persistence.*;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 public class User {
@@ -14,6 +15,17 @@ public class User {
     private String password;
     private String role;
     private String symptom;
+
+    @ManyToMany(cascade = CascadeType.ALL)
+    @JoinTable(name = "permission",
+            joinColumns = { @JoinColumn(name = "user_id") },
+            inverseJoinColumns = { @JoinColumn(name = "accessMethod_id") })
+    @JsonIgnoreProperties("users")
+    private Set<AccessMethod> accessMethods;
+
+    public User() {}
+
+
     public long getId() {
         return id;
     }
@@ -43,5 +55,27 @@ public class User {
     }
     public void setSymptom(String symptom) {
         this.symptom = symptom;
+    }
+
+    public Set<AccessMethod> getAccessMethods() {
+        return accessMethods;
+    }
+
+    public void setAccessMethods(Set<AccessMethod> accessMethods) {
+        this.accessMethods = accessMethods;
+    }
+
+    public void addAccessMethod(AccessMethod method) {
+        if (accessMethods == null) {
+            accessMethods = new HashSet<>();
+        }
+        this.getAccessMethods().add(method);
+    }
+
+    public void removeAccessMethod(AccessMethod method) {
+        if (accessMethods == null) {
+            accessMethods = new HashSet<>();
+        }
+        this.getAccessMethods().remove(method);
     }
 }
