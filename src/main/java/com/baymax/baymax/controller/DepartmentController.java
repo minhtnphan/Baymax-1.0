@@ -64,7 +64,7 @@ public class DepartmentController {
      * @param username to check if the user have permission to delete department
      */
     @DeleteMapping("/{username}/department/{id}")
-    void deleteUser(@PathVariable(name = "id") long id,
+    void deleteDepartment(@PathVariable(name = "id") long id,
                     @PathVariable(name = "username") String username) {
 
         if (userRepository.findByUsername(username).isEmpty()) {
@@ -83,7 +83,7 @@ public class DepartmentController {
      * @param newDepartment contains all information that admin wants to update
      * @param id id of the department that admin wants to update
      * @param username check if the user has permission to update informtion
-     * @return new update Deparment
+     * @return new update Department
      */
     @PutMapping("/{username}/department/{id}")
     String updateDepartment(@RequestBody Department newDepartment,
