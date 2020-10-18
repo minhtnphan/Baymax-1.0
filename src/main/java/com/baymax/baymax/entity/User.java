@@ -1,9 +1,12 @@
 package com.baymax.baymax.entity;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Entity
 public class User {
@@ -13,7 +16,16 @@ public class User {
     private String username;
     private String password;
     private String role;
-    private String symptom;
+
+    @ManyToMany(cascade = CascadeType.ALL)
+    @JoinTable(name = "permission",
+            joinColumns = { @JoinColumn(name = "user_id") },
+            inverseJoinColumns = { @JoinColumn(name = "access_id") })
+    @JsonIgnoreProperties("users")
+    private Set<Access> access;
+    public User() {}
+
+
     public long getId() {
         return id;
     }
@@ -38,10 +50,35 @@ public class User {
     public void setRole(String role) {
         this.role = role;
     }
-    public String getSymptom() {
-        return symptom;
+
+    public Set<Access> getAccess() {
+        return access;
     }
-    public void setSymptom(String symptom) {
-        this.symptom = symptom;
+
+    public void setAccess(Set<Access> access) {
+        this.access = access;
     }
+
+    public void addAccess(Access addAccess) {
+        if (access == null) {
+            access = new HashSet<>();
+        }
+        this.getAccess().add(addAccess);
+    }
+
+    public void removeAccess(Access reAccess) {
+        if (access == null) {
+            access = new HashSet<>();
+        }
+        this.getAccess().remove(reAccess);
+    }
+    public List<User> getFromAccess(List<Access> access) {
+        List<User> users = new ArrayList<>();
+        for (Access per: access) {
+            Set<User> user = per.getUsers();
+            users.add(user.iterator().next());
+        }
+        return users;
+    }
+
 }

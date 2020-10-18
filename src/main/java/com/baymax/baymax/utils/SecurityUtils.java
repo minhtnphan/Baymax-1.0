@@ -10,6 +10,7 @@ public class SecurityUtils {
         String ret = null;
         try {
             final MessageDigest md = MessageDigest.getInstance("MD5");
+            //hash password
             md.update(password.getBytes());
             byte[] digested = md.digest();
             ret = DatatypeConverter.printHexBinary(digested).toUpperCase();
