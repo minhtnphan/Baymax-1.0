@@ -1,7 +1,7 @@
 /**
  * Controller for users of Baymax 1.0
- * @Author: Huyen Nguyen
- * @Author: Minh Phan
+ * @Author Huyen Nguyen
+ * @Author Minh Phan
  */
 package com.baymax.baymax.controller;
 
@@ -42,6 +42,7 @@ public class UserController {
         if (userRepository.findByUsername(user.getUsername()).size() > 0) {
             return "User already exist";
         }
+        user.setRole(user.getRole().toLowerCase());
         if (user.getRole().equals("admin")) {
             Access adminAccess = new Access(user.getRole());
             user.addAccess(adminAccess);
@@ -83,6 +84,9 @@ public class UserController {
      */
     @GetMapping("/{username}/user")
     public List<User> getAllUsers(@PathVariable(name = "username") String username) {
+        if (userRepository.findByUsername(username).isEmpty()) {
+            return new ArrayList<>();
+        }
         Access access = accessRepository.findByUsers(
                 userRepository.findByUsername(username).get(0)).get(0);
         if (access.getUser.equals("no")) {
@@ -101,6 +105,9 @@ public class UserController {
     @GetMapping("/{username}/{userId}")
     public User getUser(@PathVariable(name = "userId") Long userId,
                         @PathVariable(name = "username") String username) {
+        if (userRepository.findByUsername(username).isEmpty()) {
+            return new User();
+        }
         Access access = accessRepository.findByUsers
                 (userRepository.findByUsername(username).get(0)).get(0);
         if (access.getUser.equals("no")) {
@@ -117,9 +124,13 @@ public class UserController {
     @DeleteMapping("/{username}/{id}")
     void deleteUser(@PathVariable(name = "id") long id,
                     @PathVariable(name = "username") String username) {
+
+        if (userRepository.findByUsername(username).isEmpty()) {
+            return;
+        }
         Access access = accessRepository.
                 findByUsers(userRepository.findByUsername(username).get(0)).get(0);
-        if (access.getUser.equals("no")) {
+        if (access.getDelete().equals("no")) {
             return;
         }
         userRepository.delete(userRepository.getOne(id));
@@ -135,6 +146,9 @@ public class UserController {
     @PutMapping("/{username}/{id}")
     User updateUser(@RequestBody User newUser, @PathVariable(name = "id") long id,
                     @PathVariable(name = "username") String username) {
+        if (userRepository.findByUsername(username).isEmpty()) {
+            return new User();
+        }
         Access access = accessRepository.
                 findByUsers(userRepository.findByUsername(username).get(0)).get(0);
         if (access.getUpdate().equals("no")) {
@@ -158,9 +172,8 @@ public class UserController {
         }
         return userRepository.findById(id).map(user -> {
             user.setUsername(newUser.getUsername());
-            user.setPassword(newUser.getPassword());
+            user.setPassword(SecurityUtils.hashPassword(newUser.getPassword()));
             user.setRole(newUser.getRole());
-            user.setAccess(user.getAccess());
 
             return userRepository.save(user);
         })

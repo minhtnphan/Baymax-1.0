@@ -52,8 +52,30 @@ public class DepartmentController {
             || department.getLocation() == null) {
             return "Missing information";
         }
+        department.setDepartment(department.getDepartment().toLowerCase());
+        department.setSymptom(department.getSymptom().toLowerCase());
         departmentRepository.save(department);
         return "Success";
+    }
+
+    /**
+     * Delete a department from database
+     * @param id department id that needs to be deleted
+     * @param username to check if the user have permission to delete department
+     */
+    @DeleteMapping("/{username}/department/{id}")
+    void deleteUser(@PathVariable(name = "id") long id,
+                    @PathVariable(name = "username") String username) {
+
+        if (userRepository.findByUsername(username).isEmpty()) {
+            return;
+        }
+        Access access = accessRepository.
+                findByUsers(userRepository.findByUsername(username).get(0)).get(0);
+        if (access.getDelete().equals("no")) {
+            return;
+        }
+        departmentRepository.delete(departmentRepository.getOne(id));
     }
 
     /**
