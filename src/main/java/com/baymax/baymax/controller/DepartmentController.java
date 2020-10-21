@@ -111,6 +111,7 @@ public class DepartmentController {
         department.setDepartment(newDepartment.getDepartment());
         department.setHospital(newDepartment.getHospital());
         department.setSymptom(newDepartment.getSymptom());
+        department.setRanking(newDepartment.getRanking());
         department.setInsuranceStatus(newDepartment.getInsuranceStatus());
         department.setPrice(newDepartment.getPrice());
         department.setLocation(newDepartment.getLocation());
